@@ -249,3 +249,37 @@ npx prisma@5.18.0 db push
 (use whichever exact Prisma version you've been using locally so it matches
 this project's schema format). Existing data is preserved; this only adds the
 new columns.
+
+## 12. This update: simpler teacher setup, safer deletes, PDF export
+
+**Teachers no longer ask for Max/Day or Max/Week** — since subjects are
+already arranged per teacher on the Assignment page, this manual capacity
+input was redundant. The backend now applies a generous automatic cap
+(8/day, 40/week) behind the scenes so the generator still avoids literally
+overloading one person, without asking you to manage numbers.
+
+**Deleting something that's "in use" now offers a real fix.** Departments,
+Sections, Subjects, Teachers, Classrooms, Working Days, and Periods will
+still warn you if other data depends on them — but now the warning tells you
+exactly what's using it, and offers to delete/unlink those dependents too
+(assignments, generated periods, day-off exceptions, room bookings) instead
+of leaving you stuck. Department deletion stays a hard block by design —
+cascading a whole department is too destructive to auto-confirm; move or
+delete its teachers/sections first.
+
+**PDF export added everywhere Excel export already existed** — student,
+teacher, and admin timetable views all now have a "Download/Export PDF"
+button alongside Excel. Student PDF/Excel exports show subject only (no
+teacher name), matching the student timetable view.
+
+**Database migration required** — no new columns this time, so:
+```bash
+cd backend
+npx prisma@5.18.0 db push
+```
+only needs to run if you haven't already applied the previous update's
+migration. If you have, you can skip straight to pushing the code.
+
+**New dependency** — `pdfkit` was added to `backend/package.json`. Render
+will install it automatically on the next deploy; no manual step needed
+beyond pushing the updated `package.json`.
