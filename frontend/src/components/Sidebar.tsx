@@ -21,7 +21,7 @@ export default function Sidebar() {
   return (
     <div className="w-72 bg-white border-r border-slate-200 min-h-screen flex flex-col">
       <div className="p-5 border-b border-slate-200">
-        <h1 className="font-bold text-brand-600 text-lg leading-tight">AI College Timetable</h1>
+        <h1 className="font-bold text-brand-600 text-lg leading-tight">Timely Campus</h1>
         <p className="text-xs text-slate-500 mt-1">
           {user?.name} · <span className="uppercase">{user?.role}</span>
         </p>
