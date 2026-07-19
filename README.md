@@ -309,3 +309,61 @@ dropdown too), Subjects, and the "All Assignments" summary table — type to
 filter by name/code/designation instantly, client-side, no page reload.
 
 **No database migration needed** for this update — no schema changes.
+
+## 14. This update: fewer re-clicks, generation history, other-branch classes
+
+**One click now tries several arrangements internally and keeps the best.**
+Previously each click ran one random pass, so an unlucky shuffle could leave
+a couple of periods unplaced, needing a manual re-click. Now every click
+runs up to 8 attempts internally (stopping early if a perfect result is
+found) and automatically keeps the best-scoring one — so a single click is
+almost always enough.
+
+**Generation History** — the Generate Timetable page now has a history table
+at the bottom recording every past run: date & time, who triggered it,
+periods placed, conflicts, and remaining free slots. Nothing to configure,
+it just logs itself automatically every time you generate.
+
+**Teachers can now be marked "Busy Elsewhere"** — on the Teachers tab, expand
+a teacher (now labeled "Subjects / Busy Elsewhere") to mark exact day+period
+slots where they already have a commitment outside this system (e.g. a class
+in another branch/department). The generator treats these exactly like a
+hard conflict and will never schedule anything for that teacher then; manual
+edits in "View & Edit" are blocked from landing there too.
+
+**Database migration required** — two new tables added
+(`TeacherBusySlot`, `GenerationLog`). On your computer, with `.env` pointed
+at your live database:
+```bash
+cd backend
+npx prisma@5.18.0 db push
+```
+Existing data is preserved; this only adds the new tables.
+
+## 15. This update: Settings page, lab arrangement toggles, institution details
+
+**New Settings page** (sidebar → Settings, admin only):
+
+- **Institution / Account Details** — institution name, account/admin name,
+  contact email. Stored for your own reference (shown on exports in a future
+  update if you'd like that too — just ask).
+- **Labs side-by-side** (toggle, default ON) — when on, a Lab subject's
+  weekly periods are placed as two consecutive periods back-to-back, the
+  usual way labs run. Turn it off if your college prefers labs scheduled as
+  separate single periods instead.
+- **Prefer last two periods for labs** (toggle, default OFF) — when on, the
+  generator tries fitting each lab's pair into the day's last two periods
+  first (e.g. right after lunch). If unavailable, it still falls back to any
+  other free consecutive pair — this is a preference, not a hard rule, so
+  labs never go unplaced just because the last two periods are taken. Only
+  applies when "Labs side-by-side" is on.
+
+Both toggles take effect the next time you click **Generate Timetable**.
+
+**Database migration required** — one new table (`AppSettings`). On your
+computer, with `.env` pointed at your live database:
+```bash
+cd backend
+npx prisma@5.18.0 db push
+```
+Existing data is preserved.
