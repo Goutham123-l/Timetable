@@ -283,3 +283,29 @@ migration. If you have, you can skip straight to pushing the code.
 **New dependency** — `pdfkit` was added to `backend/package.json`. Render
 will install it automatically on the next deploy; no manual step needed
 beyond pushing the updated `package.json`.
+
+## 13. This update: no-gaps student timetables, readiness check, search everywhere
+
+**The core fix:** a student's timetable can only come out with zero "Free"
+periods if that section's assigned subjects add up to exactly its number of
+available teaching slots per week. The generator was already correctly
+filling every slot it could — the gap was that nothing told you *before*
+generating whether your Assignment Table actually adds up to a full week.
+
+**New: Section Readiness check** on the Generate Timetable page. Before you
+even click Generate, it shows every section's Available Slots/Week vs
+Assigned/Week, with a clear status:
+- ✅ Complete — will fill every period
+- ⚠️ N periods short — will have Free slots (add more subjects/hours)
+- ⚠️ N periods over — reduce something (would otherwise show as a conflict)
+
+After generating, the results panel also lists any section that still has
+Free periods and exactly how many, so there's never ambiguity about whether
+something's wrong with the algorithm versus the Assignment Table just not
+being finished yet.
+
+**Search/filter added** to Departments, Teachers (with a department filter
+dropdown too), Subjects, and the "All Assignments" summary table — type to
+filter by name/code/designation instantly, client-side, no page reload.
+
+**No database migration needed** for this update — no schema changes.
