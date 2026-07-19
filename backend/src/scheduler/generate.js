@@ -108,6 +108,7 @@ async function generateTimetable(triggeredBy) {
     const teacherBusy = new Set();
     const roomBusy = new Set();
     const teacherDailyCount = {};
+    let scatteredLabPeriods = 0; // lab periods that couldn't be paired consecutively — used to pick the best attempt
     const newEntries = [];
     const conflicts = [];
 
@@ -254,8 +255,10 @@ async function generateTimetable(triggeredBy) {
           else break;
         }
         while (remaining > 0) {
-          if (tryPlaceSingle(assignment)) remaining -= 1;
-          else break;
+          if (tryPlaceSingle(assignment)) {
+            remaining -= 1;
+            scatteredLabPeriods += 1; // this lab period didn't get paired with another
+          } else break;
         }
       } else {
         // Either a theory subject, or labsSideBySide is off — place every
@@ -313,11 +316,13 @@ async function generateTimetable(triggeredBy) {
 
     const totalFreeSlots = sectionFillSummary.reduce((sum, s) => sum + Math.max(s.freeSlots, 0), 0);
 
-    return { newEntries, conflicts, sectionFillSummary, totalFreeSlots };
+    return { newEntries, conflicts, sectionFillSummary, totalFreeSlots, scatteredLabPeriods };
   }
 
   // Run several attempts internally and keep the best one — this is what
   // saves the admin from having to click Generate several times by hand.
+  // Preference order: fewest conflicts, then fewest scattered (unpaired)
+  // lab periods, then fewest free slots overall.
   let best = null;
   for (let i = 0; i < MAX_ATTEMPTS; i++) {
     const attempt = runAttempt();
@@ -326,11 +331,13 @@ async function generateTimetable(triggeredBy) {
     } else {
       const better =
         attempt.conflicts.length < best.conflicts.length ||
-        (attempt.conflicts.length === best.conflicts.length && attempt.totalFreeSlots < best.totalFreeSlots);
+        (attempt.conflicts.length === best.conflicts.length &&
+          (attempt.scatteredLabPeriods < best.scatteredLabPeriods ||
+            (attempt.scatteredLabPeriods === best.scatteredLabPeriods && attempt.totalFreeSlots < best.totalFreeSlots)));
       if (better) best = attempt;
     }
     // Perfect result found — no need to keep trying.
-    if (best.conflicts.length === 0 && best.totalFreeSlots === 0) break;
+    if (best.conflicts.length === 0 && best.totalFreeSlots === 0 && best.scatteredLabPeriods === 0) break;
   }
 
   await prisma.timetableEntry.deleteMany({ where: { locked: false } });
@@ -339,11 +346,17 @@ async function generateTimetable(triggeredBy) {
   }
 
   const sectionsWithGaps = best.sectionFillSummary.filter((s) => s.freeSlots > 0);
+  const scatteredNote =
+    best.scatteredLabPeriods > 0
+      ? ` ${best.scatteredLabPeriods} lab period(s) couldn't be paired back-to-back (likely because all required teachers for that lab aren't free together for two consecutive periods) and were placed as single periods instead — consider reducing required co-teachers for that lab, or check for a duplicate row in the Assignment Table.`
+      : "";
   const message =
     best.conflicts.length > 0
-      ? `Timetable generated with ${best.conflicts.length} unresolved item(s). Review conflicts and adjust manually.`
+      ? `Timetable generated with ${best.conflicts.length} unresolved item(s). Review conflicts and adjust manually.${scatteredNote}`
       : sectionsWithGaps.length > 0
-      ? `Timetable generated with no conflicts, but ${sectionsWithGaps.length} section(s) have Free periods because their assigned subjects don't add up to a full week yet — see the breakdown below.`
+      ? `Timetable generated with no conflicts, but ${sectionsWithGaps.length} section(s) have Free periods because their assigned subjects don't add up to a full week yet — see the breakdown below.${scatteredNote}`
+      : best.scatteredLabPeriods > 0
+      ? `Timetable generated successfully with no conflicts and every period filled.${scatteredNote}`
       : "Timetable generated successfully with no conflicts and every period filled.";
 
   await prisma.generationLog.create({
@@ -362,6 +375,7 @@ async function generateTimetable(triggeredBy) {
     entriesCreated: best.newEntries.length,
     conflicts: best.conflicts,
     sectionFillSummary: best.sectionFillSummary,
+    scatteredLabPeriods: best.scatteredLabPeriods,
     message,
   };
 }
