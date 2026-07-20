@@ -82,8 +82,10 @@ It runs at **http://localhost:5173** and automatically talks to the backend.
 
 ## 5. Log in
 
-Open http://localhost:5173 in your browser. Seeded demo accounts
-(password for all: `password123`):
+Open http://localhost:5173 in your browser. Seeded demo account emails
+(passwords are set in `backend/prisma/seed.js` — not documented here for
+security; check that file directly, or change them to your own before
+seeding):
 
 | Role    | Email                  |
 |---------|------------------------|
