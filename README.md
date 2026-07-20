@@ -367,3 +367,42 @@ cd backend
 npx prisma@5.18.0 db push
 ```
 Existing data is preserved.
+
+## 16. This update: guided swap UX, color-coded subjects, toasts, undo-deletes
+
+**View & Edit Timetables — completely redesigned interaction:**
+Click any period in a section's timetable and every valid place to move or
+swap it lights up **green** automatically — no guessing. Click a non-green
+period instead and it tells you exactly why it's not available (e.g. "Mr.
+Kumar already teaches CSE-B then"). Lock, Unlock, and Remove stay visible
+inline the moment you select a period — no extra menus.
+
+**Color-coded subjects** — every subject gets its own consistent color
+across every timetable view (student, teacher, admin), with a small legend
+under each grid so it's easy to visually track a subject across the week.
+
+**Toast notifications** — adding/updating anything now shows a clear green
+success popup ("Department added successfully"), and missing a required
+field shows a friendly popup telling you exactly what to fill in — instead
+of the form silently doing nothing.
+
+**5-second undo on every delete** — clicking Delete anywhere (Master Data,
+Generation History, a teacher's assigned subjects) arms a countdown with an
+Undo button instead of an abrupt confirm popup or instant deletion.
+
+**Generation History can now be deleted** — clear one record or all of them,
+with the same 5-second undo safety.
+
+**Teachers' assigned subjects can be deleted directly** from their expand
+panel on the Teachers tab, not just from the Assignment page.
+
+**Algorithm review (per request):** re-verified the scheduler end to end —
+lab pairing still structurally can't span lunch (index-adjacency check),
+the "prefer last two periods" setting correctly tries that placement first
+and falls back to any other valid consecutive pair rather than failing outright,
+teacher busy-elsewhere slots and co-teachers are correctly excluded from every
+placement path, and the swap-preview endpoint's conflict checks correctly
+simulate both directions of a swap before marking it valid. No bugs found;
+all confirmed working as intended.
+
+**No database migration needed** for this update — no schema changes.
