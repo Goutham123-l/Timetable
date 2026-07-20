@@ -308,15 +308,38 @@ router.post("/swap", authenticate, authorize("ADMIN"), async (req, res) => {
       prisma.timetableEntry.findUnique({ where: { id: Number(entryIdB) } }),
     ]);
     if (!a || !b) return res.status(404).json({ message: "Entry not found" });
+    if (a.locked || b.locked) return res.status(400).json({ message: "Swap failed: one of these periods is locked. Unlock it first." });
 
+    // Deleting both first (instead of updating in place) avoids ever having
+    // two rows with the same section+day+period at once mid-transaction —
+    // which is what happens, and fails, when swapping two periods that
+    // belong to the same section (the normal case in "View & Edit").
     await prisma.$transaction([
-      prisma.timetableEntry.update({
-        where: { id: a.id },
-        data: { dayId: b.dayId, periodId: b.periodId },
+      prisma.timetableEntry.delete({ where: { id: a.id } }),
+      prisma.timetableEntry.delete({ where: { id: b.id } }),
+      prisma.timetableEntry.create({
+        data: {
+          sectionId: a.sectionId,
+          teacherId: a.teacherId,
+          coTeacherIds: a.coTeacherIds,
+          subjectId: a.subjectId,
+          dayId: b.dayId,
+          periodId: b.periodId,
+          classroomId: a.classroomId,
+          locked: false,
+        },
       }),
-      prisma.timetableEntry.update({
-        where: { id: b.id },
-        data: { dayId: a.dayId, periodId: a.periodId },
+      prisma.timetableEntry.create({
+        data: {
+          sectionId: b.sectionId,
+          teacherId: b.teacherId,
+          coTeacherIds: b.coTeacherIds,
+          subjectId: b.subjectId,
+          dayId: a.dayId,
+          periodId: a.periodId,
+          classroomId: b.classroomId,
+          locked: false,
+        },
       }),
     ]);
     res.json({ success: true });
